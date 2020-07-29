@@ -149,8 +149,12 @@
   <ItemGroup>
     <ClInclude Include="kreg\client.hpp" />
     <ClInclude Include="kreg\database.hpp" />
+    <ClInclude Include="kreg\local.hpp" />
     <ClInclude Include="kreg\service.hpp" />
     <ClInclude Include="kreg\test.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".gitignore" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

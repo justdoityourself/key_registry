@@ -7,7 +7,7 @@ int main()
 
     kreg::Manager m("pool5123", "password", "127.0.0.1:8090");
 
-    kreg::Node n("node", "PASSWORD", "pool5123","127.0.0.1:8090");
+    kreg::Group n("node", "PASSWORD", "pool5123","127.0.0.1:8090");
 
     m.Enumerate([&](auto& user, auto& password)
     {

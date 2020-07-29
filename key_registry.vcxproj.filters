@@ -35,5 +35,11 @@
     <ClInclude Include="kreg\client.hpp">
       <Filter>kreg</Filter>
     </ClInclude>
+    <ClInclude Include="kreg\local.hpp">
+      <Filter>kreg</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".gitignore" />
   </ItemGroup>
 </Project>

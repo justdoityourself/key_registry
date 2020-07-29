@@ -20,7 +20,8 @@ namespace kreg
     using namespace mhttp;
     using namespace d8u;
 
-    class Manager
+    //TODO
+    /*class Manager
     {
         std::string host;
         std::string name;
@@ -29,7 +30,7 @@ namespace kreg
 
     public:
         Manager(std::string_view _name, std::string_view password, std::string_view _host)
-            : host(_host) 
+            : host(_host)
             , name(_name)
         {
             d8u::transform::Password pw(password);
@@ -49,7 +50,7 @@ namespace kreg
                 auto key_str = key.Export();
                 d8u::transform::encrypt(key_str, pw);
 
-                std::ofstream file(name + ".dat",ios::binary);
+                std::ofstream file(name + ".dat", ios::binary);
                 file << key_str;
 
                 HttpConnection(host).Post(std::string("/manager?id=") + name + "&cert=" + key.public_key.ExportSelfSigned(key.private_key), std::string_view());
@@ -66,9 +67,9 @@ namespace kreg
 
             while (line)
             {
-                auto [name,pw] = DecodeCredentials(line);
+                auto [name, pw] = DecodeCredentials(line);
 
-                f(name, *(d8u::transform::Password*)&pw);
+                f(name, *(d8u::transform::Password*) & pw);
                 line = stream.GetLine();
             }
         }
@@ -85,11 +86,11 @@ namespace kreg
 
             return std::make_pair(cred_str.substr(0, f), d8u::util::to_bin(cred_str.substr(f + 1)));
         }
-    };
+    };*/
 
-    class Group
+    class LocalGroup
     {
-        std::string host;
+        Database db;
         std::string file;
         std::string id;
         std::string stream;
@@ -97,11 +98,11 @@ namespace kreg
         d8u::transform::Password pw;
 
     public:
-        Group(std::string_view _file, std::string_view password, std::string_view _host, std::string_view manager="")
-            : host(_host)
+        LocalGroup(std::string_view _file, std::string_view password, std::string_view path, std::string_view manager = "")
+            : db(path)
             , file(_file)
-            , pw(password) 
-        { 
+            , pw(password)
+        {
             if (std::filesystem::exists(file + ".group"))
             {
                 std::ifstream f(file + ".group", ios::binary);
@@ -119,7 +120,7 @@ namespace kreg
                     handle << id;
                 }
 
-                if(manager.size())
+                if (manager.size())
                     RequestManagement(manager);
             }
 
@@ -140,21 +141,13 @@ namespace kreg
                     handle << id;
                 }
 
-                auto result = HttpConnection(host).Post(std::string("/join_group?id=") + id + "&stream=" + stream, std::string_view());
-
-                if (result.status != 200)
-                    throw std::runtime_error("Request Failed");
+                db.JoinGroup(id, stream + "\r\n");
             }
         }
 
-        template < typename F > void EnumerateGroup(F && f)
+        template < typename F > void EnumerateGroup(F&& f)
         {
-            auto _pool = HttpConnection(host).Get(std::string("/group?id=") + id, std::string_view());
-
-            if(_pool.status != 200)
-                throw std::runtime_error("Request Failed");
-
-            Helper stream(_pool.body);
+            Helper stream(db.ReadGroupPool(id));
 
             auto line = stream.GetLine();
 
@@ -165,17 +158,12 @@ namespace kreg
             }
         }
 
-        template < typename F > void EnumerateStream(F&& f,std::string _stream ="")
+        template < typename F > void EnumerateStream(F&& f, std::string _stream = "")
         {
             if (!_stream.size())
                 _stream = stream;
 
-            auto _pool = HttpConnection(host).Get(std::string("/stream?id=") + _stream, std::string_view());
-
-            if (_pool.status != 200)
-                throw std::runtime_error("Request Failed");
-
-            Helper stream(_pool.body);
+            Helper stream(db.ReadStream(_stream));
 
             auto line = stream.GetN(32);
 
@@ -188,9 +176,7 @@ namespace kreg
 
         std::string GetElement(std::string element)
         {
-            auto request = HttpConnection(host).Get(std::string("/element?id=") + element, std::string_view());
-
-            auto bin = d8u::util::to_bin(std::string_view((char*)request.body.data(),request.body.size()));
+            auto bin = d8u::util::to_bin(db.ReadElement(element));
             d8u::transform::decrypt(bin, pw);
 
             return std::string(bin.begin(), bin.end());
@@ -204,31 +190,20 @@ namespace kreg
             std::string element = d8u::util::to_hex(a);
             d8u::transform::encrypt(description, pw);
 
-            auto result = HttpConnection(host).Post(std::string("/add_element?id=") + element + "&stream=" + stream + "&desc=" + d8u::util::to_hex(description), std::string_view());
-
-            if (result.status != 200)
-                throw std::runtime_error("Request Failed");
+            db.AddElement(stream, element, d8u::util::to_hex(description));
         }
 
         void RequestManagement(std::string_view manager)
         {
-            auto request = HttpConnection(host).Get(std::string("/manager?id=") + std::string(manager), std::string_view());
-
-            if (!request.body.size())
-                throw std::runtime_error("Manager not found");
-
             d8u::crypto::PublicPassword public_key;
-            
-            public_key.ImportSelfSigned(std::string((char*)request.body.data(), request.body.size()));
+
+            public_key.ImportSelfSigned(db.FindManager(manager));
 
             auto encrypted = public_key.Encrypt(id + "|" + d8u::util::to_hex(pw));
 
             auto finished = d8u::util::to_hex(encrypted);
 
-            auto result = HttpConnection(host).Post(std::string("/request_manager?id=") + std::string(manager) + "&cred=" + finished, std::string_view());
-
-            if(result.status != 200)
-                throw std::runtime_error("Request Failed");
+            db.RequestManagement(manager, finished + "\r\n");
         }
     };
 }

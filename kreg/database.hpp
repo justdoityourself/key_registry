@@ -10,7 +10,7 @@ namespace kreg
 {
 	using namespace tdb;
 
-	using R = AsyncMap<32 * 1024 * 1024, 256 * 1024>;
+	using R = AsyncMap<4 * 1024 * 1024, 256 * 1024>;
 	using N = SimpleFuzzyHashBuilder<256 * 1024, uint64_t, Key32, 8, 2>;
 
 	using DB = DatabaseBuilder < R, Stream< R, BTree< R, N> > >;
