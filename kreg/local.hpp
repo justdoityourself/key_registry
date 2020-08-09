@@ -138,7 +138,7 @@ namespace kreg
 
                 {
                     std::ofstream handle(file + ".stream", ios::binary);
-                    handle << id;
+                    handle << stream;
                 }
 
                 db.JoinGroup(id, stream + "\r\n");
@@ -147,13 +147,14 @@ namespace kreg
 
         template < typename F > void EnumerateGroup(F&& f)
         {
-            Helper stream(db.ReadGroupPool(id));
+            auto stream_buffer = db.ReadGroupPool(id);
+            Helper stream(stream_buffer);
 
             auto line = stream.GetLine();
 
             while (line)
             {
-                f(line);
+                f(std::string_view(line));
                 line = stream.GetLine();
             }
         }
@@ -163,14 +164,15 @@ namespace kreg
             if (!_stream.size())
                 _stream = stream;
 
-            Helper stream(db.ReadStream(_stream));
+            auto stream_buffer = db.ReadStream(_stream);
+            Helper stream(stream_buffer);
 
             auto line = stream.GetN(32);
 
             while (line)
             {
-                f(line);
-                line = stream.GetLine();
+                f(std::string_view(line));
+                line = stream.GetN(32);
             }
         }
 

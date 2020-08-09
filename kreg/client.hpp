@@ -137,7 +137,7 @@ namespace kreg
 
                 {
                     std::ofstream handle(file + ".stream", ios::binary);
-                    handle << id;
+                    handle << stream;
                 }
 
                 auto result = HttpConnection(host).Post(std::string("/join_group?id=") + id + "&stream=" + stream, std::string_view());
@@ -160,7 +160,7 @@ namespace kreg
 
             while (line)
             {
-                f(line);
+                f(std::string_view(line));
                 line = stream.GetLine();
             }
         }
@@ -181,8 +181,8 @@ namespace kreg
 
             while (line)
             {
-                f(line);
-                line = stream.GetLine();
+                f(std::string_view(line));
+                line = stream.GetN(32);
             }
         }
 
