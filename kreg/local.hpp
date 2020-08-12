@@ -184,6 +184,28 @@ namespace kreg
             return std::string(bin.begin(), bin.end());
         }
 
+        template <typename ... T>void AddJsonElement(T const& ... args)
+        {
+            std::array<uint8_t, 16> a;
+            d8u::random_bytes_secure(a);
+
+            std::string element = d8u::util::to_hex(a);
+
+            std::ostringstream json;
+
+            json << "{";
+
+            ((json << "\"" << args.first << "\":\"" << args.second << "\","), ...);
+
+            json << "\"id\":\"" << element << "\"" << "}";
+
+            auto result = json.str();
+      
+            d8u::transform::encrypt(result, pw);
+
+            db.AddElement(stream, element, d8u::util::to_hex(result));
+        }
+
         void AddElement(std::string description)
         {
             std::array<uint8_t, 16> a;
